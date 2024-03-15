@@ -1,5 +1,4 @@
-ANA B. Elena-Diana 321 CB
-Tema 1 - Loader de Executabile
+# Tema 1 - Loader de Executabile
 
 Parcurg vectorul de segmente si verific daca adresa page-fault-ului corespune unuia dintre ele.
 Daca gasesc segmentul, verific vectorul "data" care va contine, pentru fiecare pagina
