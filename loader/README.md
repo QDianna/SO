@@ -1,14 +1,32 @@
-# Tema 1 - Loader de Executabile
+# Tema 1 – Loader de Executabile
 
-Parcurg vectorul de segmente si verific daca adresa page-fault-ului corespune unuia dintre ele.
-Daca gasesc segmentul, verific vectorul "data" care va contine, pentru fiecare pagina
-posibila a segmentului, 0 daca aceasta nu a fost mapata inca, sau 1 in caz contrar.
-Astfel, disting 2 cazuri:
-1. Daca intrarea din "data" corespunzatoare paginii este 1, cauza page-fault-ului este
-un acces ne-permis la memorie si dau semnalul SIGSEGV.
-2. Daca este 0, mapez pagina, actualizez "data", citesc informatii din executabil, daca este cazul,
-si zero-izez restul paginii/intreaga pagina in functie de unde se afla aceasta in segment. Setez
-permisiunile paginii mapate cu permisiunile segmentului.
-Daca parcurgerea vectorului de segmente se incheie si adresa paginii nu a fost gasita, dau semnalul
-SIGSEGV, deoarece cauza page-faultului este accesarea unei bucati de memorie care nu face parte
-din executabil.
+Implementare de **lazy loading** pentru paginile unui executabil, cu tratarea corectă a page-fault-urilor și a permisiunilor de memorie.
+
+## Idee
+- La primul acces într-o pagină dintr-un segment mapabil, pagina este mapată dinamic, conținutul este încărcat sau zero-izat, iar permisiunile sunt setate conform segmentului.
+- Accesul ilegal într-o pagină deja mapată sau în afara segmentelor valide generează **SIGSEGV**.
+
+## Structuri și date
+- **Vector de segmente**: intervale `[vaddr, vaddr + mem_size)` cu `file_offset`, `file_size`, `perm`.
+- **data[page_idx]** per segment: `0` = pagina nemapată, `1` = pagina deja mapată.
+
+## Flux la page-fault
+1. Identifică segmentul care conține adresa faultului. Dacă nu există, trimite **SIGSEGV**.
+2. Calculează indexul paginii în segment (`page_idx`).
+3. Dacă `data[page_idx] == 1` → acces nepermis → **SIGSEGV**.
+4. Dacă `data[page_idx] == 0`:
+   - Alocă și mapează pagina la adresa corectă.
+   - Copiază din fișier doar porțiunea acoperită de pagină dacă suprapune zona `[file_offset, file_offset + file_size)`.
+   - Zero-izează restul (porțiunile din pagină care cad în afara `file_size` sau paginile din coada segmentului).
+   - Setează permisiunile paginii la cele ale segmentului (`PROT_READ/WRITE/EXEC`).
+   - Marchează `data[page_idx] = 1`.
+
+## Cazuri particulare
+- Pagină parțial acoperită de fișier: copiază bytes utili, zero-izează remainder.
+- Pagină complet după `file_size` dar în interiorul `mem_size`: zero-izează complet.
+- Acces în afara oricărui segment: **SIGSEGV** imediat.
+
+## Semnalizare erori
+- **SIGSEGV** pentru:
+  - Acces într-o pagină mapată cu permisiuni insuficiente.
+  - Acces la adrese din afara segmentelor executabilului.
