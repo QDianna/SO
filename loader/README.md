@@ -1,4 +1,4 @@
-# Tema 1 – Loader de Executabile
+# Tema 3 – Loader de Executabile
 
 Implementare de **lazy loading** pentru paginile unui executabil, cu tratarea corectă a page-fault-urilor și a permisiunilor de memorie.
 
